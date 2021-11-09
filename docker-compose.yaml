@@ -1,0 +1,68 @@
+version: '3'
+
+
+services:
+  mqtt:
+    hostname: mqtt
+    image: jameslinnegartw/lantern
+    depends_on:
+        - postgres
+    restart: always
+    volumes:
+      - ./mqtt/conf:/etc/mosquitto
+    ports:
+      - 1883:1883
+    networks:
+      - lantern-network
+  postgres:
+    image: postgres:10.4
+    networks:
+      - lantern-network
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: db
+
+  queue:
+    hostname: queue
+    image: mrlinnegar/lantern
+    restart: always
+    environment:
+      MQTT_URL: ${MQTT_URL}
+      SERVER_PORT: ${SERVER_PORT}
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      QUEUE_ENABLED: "true"
+    command: ["./bin/wait-for-postgres.sh", "${POSTGRES_HOST}", "./bin/queue.sh"]
+    networks:
+      - lantern-network
+
+  web:
+    hostname: web
+    image: mrlinnegar/lantern
+    restart: always
+    environment:
+      MQTT_URL: ${MQTT_URL}
+      SERVER_PORT: ${SERVER_PORT}
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      QUEUE_ENABLED: "true"
+    ports:
+      - 80:8080
+    command: ["./bin/wait-for-postgres.sh", "${POSTGRES_HOST}", "./bin/server.sh"]
+    networks:
+      - lantern-network
+networks:
+  lantern-network:
+    driver: bridge # a user defined bridge is required; the default bridge network doesn't support name resolution
+

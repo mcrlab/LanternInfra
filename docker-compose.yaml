@@ -12,6 +12,10 @@ services:
       - ./mqtt/conf:/etc/mosquitto
     ports:
       - 1883:1883
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
     networks:
       - lantern-network
   postgres:
@@ -32,6 +36,7 @@ services:
     image: mrlinnegar/lantern
     restart: always
     environment:
+      NODE_ENV: ${NODE_ENV}
       MQTT_URL: ${MQTT_URL}
       SERVER_PORT: ${SERVER_PORT}
       POSTGRES_HOST: ${POSTGRES_HOST}
@@ -43,6 +48,10 @@ services:
     ports:
       - 80:8080
     command: ["./bin/wait-for-postgres.sh", "${POSTGRES_HOST}", "./bin/server.sh"]
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
     networks:
       - lantern-network
   christmas:
